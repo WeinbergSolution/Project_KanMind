@@ -37,9 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'auth_app'
-    'kanban_app'
-    'rest_framework'
+    'auth_App',
+    'kanban_App',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

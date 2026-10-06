@@ -29,7 +29,7 @@ class Tasks(models.Model):
     ]
 
     board = models.ForeignKey(
-        "Board",
+        "Boards",
         on_delete=models.CASCADE,
         related_name="tasks"
     )
