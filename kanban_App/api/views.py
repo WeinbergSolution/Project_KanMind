@@ -1,13 +1,15 @@
 from rest_framework import viewsets
+from .serializers import BoardSerializer, TaskSerializer
+from kanban_App.models import Board, Task
 
 
 class BoardViewSet(viewsets.ModelViewSet):
-    pass
+
+    queryset = Board.objects.all()
+    serializer_class = BoardSerializer
 
 
 class TaskViewSet(viewsets.ModelViewSet):
-    pass
 
-
-class CommentViewSet(viewsets.ModelViewSet):
-    pass
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
