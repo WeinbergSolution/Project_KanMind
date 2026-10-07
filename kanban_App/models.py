@@ -1,75 +1,87 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
-# Create your models here.
-class Boards(models.Model):
-    title = models.CharField(max_length=255)
-    member_count = models.IntegerField(default=0)
-    ticket_count = models.IntegerField(default=0)
-    tasks_to_do_count = models.IntegerField(default=0)
-    tasks_high_prio_count = models.IntegerField(default=0)
-    owner_id = models.ForeignKey(User, on_delete=models.CASCADE)
+# ruft das Stadart user model
+User = get_user_model()
 
-    def __str__(self):
-        return self.title
 
-class Tasks(models.Model):
+class Board(models.Model):
+    """
+    Class for Board model
+    """
 
-    STATUS_CHOICES = [
-        ("to-do", "To-do"),
-        ("in-progress", "In-progress"),
-        ("review", "Review"),
-        ("done", "Done"),
-    ]
+    titel = models.CharField(max_length=250)
+    owner_id = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="board_related_name",
+    )
+    members = models.ManyToManyField(User)
 
-    PRIORITY_CHOICES = [
-        ("low", "Low"),
-        ("medium", "Medium"),
-        ("high", "High"),
-    ]
+    class Meta:
+        verbose_name = "Board"
+
+
+STATUS_CHOICES = {
+    ("TODO", "to-do"),
+    ("INPROGRESS", "in-progress"),
+    ("REVIEW", "rewiev"),
+}
+
+PRIORITY_CHOICES = {
+    ("LOW", "low"),
+    ("MEDIUM", "medium"),
+    ("HIGH", "high"),
+}
+
+
+class Task(models.Model):
+    """
+    class for tasks
+    """
 
     board = models.ForeignKey(
-        "Boards",
+        Board,
         on_delete=models.CASCADE,
-        related_name="tasks"
+        related_name="task_board",
     )
-
-    title = models.CharField(max_length=255)
-
+    titel = models.CharField(max_length=250)
     description = models.TextField()
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="to-do"
-    )
-
-    priority = models.CharField(
-        max_length=10,
-        choices=PRIORITY_CHOICES,
-        default="medium"
-    )
-
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="TODO")
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default="LOW")
     assignee = models.ForeignKey(
         User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="assigned_tasks"
+        on_delete=models.CASCADE,
+        related_name="task_assignee",
     )
-
     reviewer = models.ForeignKey(
         User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="reviewing_tasks"
+        on_delete=models.CASCADE,
+        related_name="task_reviewer",
+    )
+    due_date = models.DateField()
+
+    class Meta:
+        verbose_name = "Task"
+
+
+class Comment(models.Model):
+    """
+    class dor comments
+    """
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="comment_author",
+    )
+    content = models.TextField()
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="comment_task",
     )
 
-    due_date = models.DateField(
-        null=True,
-        blank=True
-    )
-
-    def __str__(self):
-        return self.title
+    class Meta:
+        verbose_name = "Comment"
