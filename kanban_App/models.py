@@ -10,7 +10,7 @@ class Board(models.Model):
     Class for Board model
     """
 
-    titel = models.CharField(max_length=250)
+    title = models.CharField(max_length=250)
     owner_id = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -45,7 +45,7 @@ class Task(models.Model):
         on_delete=models.CASCADE,
         related_name="task_board",
     )
-    titel = models.CharField(max_length=250)
+    title = models.CharField(max_length=250)
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="TODO")
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default="LOW")
