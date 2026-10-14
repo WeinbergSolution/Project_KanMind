@@ -1,12 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from kanban_App.api.serializers import BoardSerializer, DetailBoardSerializer
+from kanban_App.api.serializers import (
+    BoardSerializer,
+    DetailBoardSerializer,
+    UserSerializer,
+)
 from rest_framework.response import Response
 from django.db.models import Q
 from kanban_App.models import Board
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status
+from django.contrib.auth.models import User
+from rest_framework.exceptions import ValidationError
 
 
 # Postview
@@ -81,3 +87,19 @@ class DetailBoardView(APIView):
         board.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class EmailCheckView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        email = request.query_params.get("email")
+
+        if not email:
+            raise ValidationError("No email address entered")
+
+        user = get_object_or_404(User, email=email)
+
+        serializer = UserSerializer(user)
+
+        return Response(serializer.data)

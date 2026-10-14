@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from kanban_App.models import Board, Task, Comment
+from django.contrib.auth.models import User
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -114,6 +115,18 @@ class DetailBoardSerializer(serializers.ModelSerializer):
             )
 
         return data
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    fullname = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "fullname"]
+
+    def get_fullname(self, obj):
+        return obj.first_name + " " + obj.last_name
 
 
 class TaskSerializer(serializers.ModelSerializer):
