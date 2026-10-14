@@ -25,7 +25,8 @@ class Board(models.Model):
 STATUS_CHOICES = {
     ("TODO", "to-do"),
     ("INPROGRESS", "in-progress"),
-    ("REVIEW", "rewiev"),
+    ("REVIEW", "review"),
+    ("DONE", "done"),
 }
 
 PRIORITY_CHOICES = {
@@ -53,11 +54,15 @@ class Task(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="task_assignee",
+        null=True,
+        blank=True,
     )
     reviewer = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="task_reviewer",
+        null=True,
+        blank=True,
     )
     due_date = models.DateField()
 

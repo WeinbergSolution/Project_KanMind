@@ -21,6 +21,8 @@ class BoardSerializer(serializers.ModelSerializer):
             "owner_id",
         ]
 
+        read_only_fields = ["owner_id"]
+
     def get_member_count(self, obj):
         return obj.members.count()
 
@@ -32,6 +34,86 @@ class BoardSerializer(serializers.ModelSerializer):
 
     def get_tasks_high_prio_count(self, obj):
         return obj.task_board.filter(priority="HIGH").count()
+
+
+class DetailBoardSerializer(serializers.ModelSerializer):
+    """
+    Detail Serializers
+    """
+
+    members = serializers.SerializerMethodField()
+    tasks = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Board
+        fields = [
+            "id",
+            "title",
+            "owner_id",
+            "members",
+            "tasks",
+        ]
+
+    def get_members(self, obj):
+
+        members = obj.members.all()
+        data = []
+
+        for member in members:
+            data.append(
+                {
+                    "id": member.pk,
+                    "email": member.email,
+                    "fullname": member.first_name + " " + member.last_name,
+                }
+            )
+        return data
+
+    def get_tasks(self, obj):
+        # Alle Tasks abrufen, die zu diesem Board gehören
+        tasks = obj.task_board.all()
+        data = []
+
+        for task in tasks:
+
+            # Zugewiesenen User auslesen
+            assignee = task.assignee
+            assignee_data = None
+
+            if assignee is not None:
+                assignee_data = {
+                    "id": assignee.pk,
+                    "email": assignee.email,
+                    "fullname": assignee.first_name + " " + assignee.last_name,
+                }
+
+            # Reviewer auslesen
+            reviewer = task.reviewer
+            reviewer_data = None
+
+            if reviewer is not None:
+                reviewer_data = {
+                    "id": reviewer.pk,
+                    "email": reviewer.email,
+                    "fullname": reviewer.first_name + " " + reviewer.last_name,
+                }
+
+            # Task mit den zugehörigen User-Daten zur Liste hinzufügen
+            data.append(
+                {
+                    "id": task.pk,
+                    "title": task.title,
+                    "description": task.description,
+                    "status": task.get_status_display(),
+                    "priority": task.get_priority_display(),
+                    "assignee": assignee_data,
+                    "reviewer": reviewer_data,
+                    "due_date": task.due_date,
+                    "comments_count": task.comment_task.count(),
+                }
+            )
+
+        return data
 
 
 class TaskSerializer(serializers.ModelSerializer):

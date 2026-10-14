@@ -1,11 +1,7 @@
-from django.urls import path, include
-from rest_framework import routers
-from .views import BoardViewSet, TaskViewSet
-
-router = routers.SimpleRouter()
-router.register(r"boards", BoardViewSet)
-router.register(r"tasks", TaskViewSet)
+from django.urls import path
+from .views import BoardView, DetailBoardView
 
 urlpatterns = [
-    path("", include(router.urls)),
+    path("boards/", BoardView.as_view()),
+    path("boards/<int:board_id>/", DetailBoardView.as_view()),
 ]
