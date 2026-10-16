@@ -65,6 +65,13 @@ class Task(models.Model):
         blank=True,
     )
     due_date = models.DateField()
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="created_tasks",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name = "Task"
