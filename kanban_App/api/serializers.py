@@ -31,10 +31,10 @@ class BoardSerializer(serializers.ModelSerializer):
         return obj.task_board.count()
 
     def get_tasks_to_do_count(self, obj):
-        return obj.task_board.filter(status="TODO").count()
+        return obj.task_board.filter(status="to-do").count()
 
     def get_tasks_high_prio_count(self, obj):
-        return obj.task_board.filter(priority="HIGH").count()
+        return obj.task_board.filter(priority="high").count()
 
 
 class DetailBoardSerializer(serializers.ModelSerializer):
@@ -105,8 +105,8 @@ class DetailBoardSerializer(serializers.ModelSerializer):
                     "id": task.pk,
                     "title": task.title,
                     "description": task.description,
-                    "status": task.get_status_display(),
-                    "priority": task.get_priority_display(),
+                    "status": task.status,
+                    "priority": task.priority,
                     "assignee": assignee_data,
                     "reviewer": reviewer_data,
                     "due_date": task.due_date,
@@ -133,6 +133,25 @@ class TaskSerializer(serializers.ModelSerializer):
 
     comments_count = serializers.SerializerMethodField()
 
+    assignee = UserSerializer(read_only=True)
+    reviewer = UserSerializer(read_only=True)
+
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="assignee",
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+
+    reviewer_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="reviewer",
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Task
         fields = [
@@ -143,7 +162,9 @@ class TaskSerializer(serializers.ModelSerializer):
             "status",
             "priority",
             "assignee",
+            "assignee_id",
             "reviewer",
+            "reviewer_id",
             "due_date",
             "comments_count",
         ]
@@ -153,6 +174,8 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    author = UserSerializer(read_only=True)
+
     class Meta:
         model = Comment
         fields = [
