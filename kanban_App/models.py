@@ -22,18 +22,18 @@ class Board(models.Model):
         verbose_name = "Board"
 
 
-STATUS_CHOICES = {
-    ("TODO", "to-do"),
-    ("INPROGRESS", "in-progress"),
-    ("REVIEW", "review"),
-    ("DONE", "done"),
-}
+STATUS_CHOICES = [
+    ("to-do", "To Do"),
+    ("in-progress", "In Progress"),
+    ("review", "Review"),
+    ("done", "Done"),
+]
 
-PRIORITY_CHOICES = {
-    ("LOW", "low"),
-    ("MEDIUM", "medium"),
-    ("HIGH", "high"),
-}
+PRIORITY_CHOICES = [
+    ("low", "Low"),
+    ("medium", "Medium"),
+    ("high", "High"),
+]
 
 
 class Task(models.Model):
