@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from .permissions import IsBoardMemberOrOwner, IsTaskCreatorOrBoardOwner
 from .serializers import (
     BoardSerializer,
     DetailBoardSerializer,
@@ -172,16 +173,16 @@ class TaskView(APIView):
 class TaskDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get_permissions(self):
+        if self.request.method == "DELETE":
+            return [IsAuthenticated(), IsTaskCreatorOrBoardOwner()]
+        return [IsAuthenticated(), IsBoardMemberOrOwner()]
+
     def patch(self, request, task_id):
         task = get_object_or_404(Task, id=task_id)
         board = task.board
 
-        is_member = board.members.filter(id=request.user.id).exists()
-
-        if not is_member:
-            raise PermissionDenied(
-                "Sie sind kein Mitglied des Boards, Berechtigung fehlt!"
-            )
+        self.check_object_permissions(request, task)
 
         serializer = TaskSerializer(task, data=request.data, partial=True)
 
@@ -220,19 +221,8 @@ class TaskDetailView(APIView):
 
     def delete(self, request, task_id):
         task = get_object_or_404(Task, id=task_id)
-        board = task.board
-
-        is_owner = board.owner_id == request.user
-
-        is_creator = hasattr(task, "created_by") and task.created_by == request.user
-
-        if not (is_owner or is_creator):
-            raise PermissionDenied(
-                "Nur der Task-Ersteller oder Board-Eigentümer darf diesen Task löschen!"
-            )
-
+        self.check_object_permissions(request, task)
         task.delete()
-
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
