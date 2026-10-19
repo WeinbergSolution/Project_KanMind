@@ -1,9 +1,11 @@
-from rest_framework import serializers
-from kanban_App.models import Board, Task, Comment
 from django.contrib.auth.models import User
+from rest_framework import serializers
+
+from kanban_App.models import Board, Comment, Task
 
 
 class BoardSerializer(serializers.ModelSerializer):
+    """Serialize boards with member and task statistics."""
 
     member_count = serializers.SerializerMethodField()
     ticket_count = serializers.SerializerMethodField()
@@ -21,23 +23,27 @@ class BoardSerializer(serializers.ModelSerializer):
             "tasks_high_prio_count",
             "owner_id",
         ]
-
         read_only_fields = ["owner_id"]
 
     def get_member_count(self, obj):
+        """Return the number of board members."""
         return obj.members.count()
 
     def get_ticket_count(self, obj):
+        """Return the total number of board tasks."""
         return obj.task_board.count()
 
     def get_tasks_to_do_count(self, obj):
+        """Return the number of tasks with to-do status."""
         return obj.task_board.filter(status="to-do").count()
 
     def get_tasks_high_prio_count(self, obj):
+        """Return the number of high-priority tasks."""
         return obj.task_board.filter(priority="high").count()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Serialize basic user information."""
 
     fullname = serializers.SerializerMethodField()
 
@@ -46,10 +52,13 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "fullname"]
 
     def get_fullname(self, obj):
-        return obj.first_name + " " + obj.last_name
+        """Return the user's full name."""
+        return f"{obj.first_name} {obj.last_name}"
 
 
 class DetailBoardSerializer(serializers.ModelSerializer):
+    """Serialize board details, members, and associated tasks."""
+
     members = UserSerializer(many=True, read_only=True)
     member_ids = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
@@ -73,10 +82,12 @@ class DetailBoardSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "owner_id"]
 
     def get_tasks(self, obj):
+        """Return serialized tasks belonging to the board."""
         tasks = obj.task_board.all()
         return [self.serialize_task(task) for task in tasks]
 
     def serialize_task(self, task):
+        """Return task details for the board response."""
         return {
             "id": task.pk,
             "title": task.title,
@@ -90,14 +101,16 @@ class DetailBoardSerializer(serializers.ModelSerializer):
         }
 
     def serialize_user(self, user):
+        """Return user details or None if no user is assigned."""
         if user is None:
             return None
         return UserSerializer(user).data
 
 
 class TaskSerializer(serializers.ModelSerializer):
-    comments_count = serializers.SerializerMethodField()
+    """Serialize tasks and validate board user assignments."""
 
+    comments_count = serializers.SerializerMethodField()
     assignee = UserSerializer(read_only=True)
     reviewer = UserSerializer(read_only=True)
 
@@ -108,7 +121,6 @@ class TaskSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
-
     reviewer_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         source="reviewer",
@@ -135,9 +147,11 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
 
     def get_comments_count(self, obj):
+        """Return the number of comments on a task."""
         return obj.comment_task.count()
 
     def validate_board(self, value):
+        """Prevent moving an existing task to another board."""
         if self.instance and value != self.instance.board:
             raise serializers.ValidationError(
                 "A task cannot be moved to another board."
@@ -145,6 +159,7 @@ class TaskSerializer(serializers.ModelSerializer):
         return value
 
     def validate_board_user(self, user, board, field_name):
+        """Ensure an assigned user belongs to the task board."""
         if user is None:
             return
 
@@ -157,18 +172,21 @@ class TaskSerializer(serializers.ModelSerializer):
             )
 
     def validate(self, attrs):
+        """Validate assignee and reviewer against the board."""
         board = self.instance.board if self.instance else attrs.get("board")
-
         if board is None:
             return attrs
 
         for field in ("assignee", "reviewer"):
-            self.validate_board_user(attrs.get(field), board, f"{field}_id")
+            if field in attrs:
+                self.validate_board_user(attrs[field], board, f"{field}_id")
 
         return attrs
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """Serialize task comments with their authors."""
+
     author = UserSerializer(read_only=True)
 
     class Meta:
