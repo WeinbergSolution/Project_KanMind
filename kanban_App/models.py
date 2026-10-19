@@ -1,14 +1,12 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 
-# ruft das Stadart user model
+# Get the default Django user model.
 User = get_user_model()
 
 
 class Board(models.Model):
-    """
-    Class for Board model
-    """
+    """Represent a Kanban board with an owner and members."""
 
     title = models.CharField(max_length=250)
     owner_id = models.ForeignKey(
@@ -20,6 +18,10 @@ class Board(models.Model):
 
     class Meta:
         verbose_name = "Board"
+
+    def __str__(self):
+        """Return the board title."""
+        return self.title
 
 
 STATUS_CHOICES = [
@@ -37,9 +39,7 @@ PRIORITY_CHOICES = [
 
 
 class Task(models.Model):
-    """
-    class for tasks
-    """
+    """Represent a task belonging to a Kanban board."""
 
     board = models.ForeignKey(
         Board,
@@ -48,8 +48,16 @@ class Task(models.Model):
     )
     title = models.CharField(max_length=250)
     description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="to-do")
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default="low")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="to-do",
+    )
+    priority = models.CharField(
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default="low",
+    )
     assignee = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -76,11 +84,13 @@ class Task(models.Model):
     class Meta:
         verbose_name = "Task"
 
+    def __str__(self):
+        """Return the task title."""
+        return self.title
+
 
 class Comment(models.Model):
-    """
-    class dor comments
-    """
+    """Represent a comment associated with a task."""
 
     created_at = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(
@@ -97,3 +107,7 @@ class Comment(models.Model):
 
     class Meta:
         verbose_name = "Comment"
+
+    def __str__(self):
+        """Return the comment ID and its author."""
+        return f"Comment {self.pk} by {self.author}"
