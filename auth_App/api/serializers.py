@@ -1,14 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-
-
-class LoginSerializer(serializers.Serializer):
-    """
-    Validate credentials and resolve them to the authenticated user.
-    """
-
-    def validate(self, data):
-        """Authenticate by email and password."""
+from rest_framework.exceptions import ValidationError
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -58,3 +50,24 @@ class RegistrationSerializer(serializers.Serializer):
             last_name = ""
 
         return first_name, last_name
+
+
+class LoginSerializer(serializers.Serializer):
+    """
+    Validate credentials and resolve them to the authenticated user.
+    """
+
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        """Authenticate by email and password."""
+        email = data["email"]
+        password = data["password"]
+        user = User.objects.filter(email=email).first()
+
+        if not user or not user.check_password(password):
+            raise serializers.ValidationError("Invalid email or password.")
+
+        data["user"] = user
+        return data
