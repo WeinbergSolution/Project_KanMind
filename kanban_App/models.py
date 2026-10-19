@@ -48,8 +48,8 @@ class Task(models.Model):
     )
     title = models.CharField(max_length=250)
     description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="TODO")
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default="LOW")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="to-do")
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default="low")
     assignee = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
