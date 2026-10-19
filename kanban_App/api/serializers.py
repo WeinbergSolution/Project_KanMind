@@ -37,86 +37,6 @@ class BoardSerializer(serializers.ModelSerializer):
         return obj.task_board.filter(priority="high").count()
 
 
-class DetailBoardSerializer(serializers.ModelSerializer):
-    """
-    Detail Serializers
-    """
-
-    members = serializers.SerializerMethodField()
-    tasks = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Board
-        fields = [
-            "id",
-            "title",
-            "owner_id",
-            "members",
-            "tasks",
-        ]
-
-    def get_members(self, obj):
-
-        members = obj.members.all()
-        data = []
-
-        for member in members:
-            data.append(
-                {
-                    "id": member.pk,
-                    "email": member.email,
-                    "fullname": member.first_name + " " + member.last_name,
-                }
-            )
-        return data
-
-    def get_tasks(self, obj):
-        # Alle Tasks abrufen, die zu diesem Board gehören
-        tasks = obj.task_board.all()
-        data = []
-
-        for task in tasks:
-
-            # Zugewiesenen User auslesen
-            assignee = task.assignee
-            assignee_data = None
-
-            if assignee is not None:
-                assignee_data = {
-                    "id": assignee.pk,
-                    "email": assignee.email,
-                    "fullname": assignee.first_name + " " + assignee.last_name,
-                }
-
-            # Reviewer auslesen
-            reviewer = task.reviewer
-            reviewer_data = None
-
-            if reviewer is not None:
-                reviewer_data = {
-                    "id": reviewer.pk,
-                    "email": reviewer.email,
-                    "fullname": reviewer.first_name + " " + reviewer.last_name,
-                }
-
-            # Task mit den zugehörigen User-Daten zur Liste hinzufügen
-            data.append(
-                {
-                    "id": task.pk,
-                    "title": task.title,
-                    "description": task.description,
-                    "status": task.status,
-                    "priority": task.priority,
-                    "assignee": assignee_data,
-                    "reviewer": reviewer_data,
-                    "due_date": task.due_date,
-                    "comments_count": task.comment_task.count(),
-                }
-            )
-
-        return data
-
-
 class UserSerializer(serializers.ModelSerializer):
 
     fullname = serializers.SerializerMethodField()
@@ -129,8 +49,53 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.first_name + " " + obj.last_name
 
 
-class TaskSerializer(serializers.ModelSerializer):
+class DetailBoardSerializer(serializers.ModelSerializer):
+    members = UserSerializer(many=True, read_only=True)
+    member_ids = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="members",
+        many=True,
+        write_only=True,
+        required=False,
+    )
+    tasks = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Board
+        fields = [
+            "id",
+            "title",
+            "owner_id",
+            "members",
+            "member_ids",
+            "tasks",
+        ]
+        read_only_fields = ["id", "owner_id"]
+
+    def get_tasks(self, obj):
+        tasks = obj.task_board.all()
+        return [self.serialize_task(task) for task in tasks]
+
+    def serialize_task(self, task):
+        return {
+            "id": task.pk,
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "assignee": self.serialize_user(task.assignee),
+            "reviewer": self.serialize_user(task.reviewer),
+            "due_date": task.due_date,
+            "comments_count": task.comment_task.count(),
+        }
+
+    def serialize_user(self, user):
+        if user is None:
+            return None
+        return UserSerializer(user).data
+
+
+class TaskSerializer(serializers.ModelSerializer):
     comments_count = serializers.SerializerMethodField()
 
     assignee = UserSerializer(read_only=True)
@@ -171,6 +136,36 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def get_comments_count(self, obj):
         return obj.comment_task.count()
+
+    def validate_board(self, value):
+        if self.instance and value != self.instance.board:
+            raise serializers.ValidationError(
+                "A task cannot be moved to another board."
+            )
+        return value
+
+    def validate_board_user(self, user, board, field_name):
+        if user is None:
+            return
+
+        is_owner = board.owner_id == user
+        is_member = board.members.filter(id=user.id).exists()
+
+        if not (is_owner or is_member):
+            raise serializers.ValidationError(
+                {field_name: "User must be a board member or owner."}
+            )
+
+    def validate(self, attrs):
+        board = self.instance.board if self.instance else attrs.get("board")
+
+        if board is None:
+            return attrs
+
+        for field in ("assignee", "reviewer"):
+            self.validate_board_user(attrs.get(field), board, f"{field}_id")
+
+        return attrs
 
 
 class CommentSerializer(serializers.ModelSerializer):

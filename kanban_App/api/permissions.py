@@ -9,10 +9,27 @@ class IsBoardMemberOrOwner(BasePermission):
     message = "You must be a board member or owner to perform this action."
 
     def has_object_permission(self, request, view, obj):
-        board = obj.board if hasattr(obj, "board") else obj
+        if hasattr(obj, "board"):
+            board = obj.board
+        elif hasattr(obj, "task"):
+            board = obj.task.board
+        else:
+            board = obj
+
         is_owner = board.owner_id == request.user
         is_member = board.members.filter(id=request.user.id).exists()
         return is_owner or is_member
+
+
+class IsBoardOwner(BasePermission):
+    """
+    Allow access only to the board owner.
+    """
+
+    message = "Only the board owner can perform this action."
+
+    def has_object_permission(self, request, view, obj):
+        return obj.owner_id == request.user
 
 
 class IsTaskCreatorOrBoardOwner(BasePermission):
@@ -26,3 +43,14 @@ class IsTaskCreatorOrBoardOwner(BasePermission):
         is_creator = obj.created_by == request.user
         is_owner = obj.board.owner_id == request.user
         return is_creator or is_owner
+
+
+class IsCommentAuthor(BasePermission):
+    """
+    Allow comment deletion only by its author.
+    """
+
+    message = "Only the comment author can delete this comment."
+
+    def has_object_permission(self, request, view, obj):
+        return obj.author == request.user
